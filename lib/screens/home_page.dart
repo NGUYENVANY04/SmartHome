@@ -17,6 +17,7 @@ class _HomePageState extends State<HomePage> {
   final double horizontalPadding = 20;
   final double verticalPadding = 10;
   double humiditySensorValue = 0.0;
+  double temperatureSensorValue = 0.0;
   bool fish = false;
 
   final DatabaseReference _database = FirebaseDatabase.instance.ref();
@@ -29,6 +30,7 @@ class _HomePageState extends State<HomePage> {
     _fetchInitialDeviceStates();
     _fetchHumidityData();
     _checkNewCards();
+    _fetchTemperatureData();
   }
 
   void _checkNewCards() async {
@@ -68,6 +70,17 @@ class _HomePageState extends State<HomePage> {
     });
   }
 
+  void _fetchTemperatureData() {
+    _database.child('temperature').onValue.listen((event) {
+      final data = event.snapshot.value;
+      if (data != null) {
+        setState(() {
+          temperatureSensorValue = double.parse(data.toString());
+        });
+      }
+    });
+  }
+
   // list of smart devices
   List mySmartDevices = [
     // [ smartDeviceName, iconPath , powerStatus ]
@@ -75,7 +88,8 @@ class _HomePageState extends State<HomePage> {
     ["Đèn phòng ngủ", "assets/bed-light.png", false, "v1"],
     ["Đèn hiên", "assets/garden-light.png", false, "v2"],
     ["Đèn tầng 2", "assets/lamp.png", false, "v3"],
-    ["Đèn bể cá", "assets/fish_light.png", false, "v5"],
+    ["Đèn bể cá", "assets/fish_light.png", false, "v4"],
+    ["Máy bơm bể cá", "assets/fish_light.png", false, "v5"],
   ];
 
   void _fetchInitialDeviceStates() {
@@ -123,8 +137,18 @@ class _HomePageState extends State<HomePage> {
                         actions: <Widget>[
                           TextButton(
                             onPressed: () {
-                              Navigator.of(context).pop();
-                              _saveCard(_nameController.text);
+                              String userName = _nameController.text;
+
+                              if (userName != null && userName.isNotEmpty) {
+                                Navigator.of(context).pop();
+                                _saveCard(userName);
+                              } else {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(
+                                      content:
+                                          Text('Vui lòng nhập tên người dùng')),
+                                );
+                              }
                             },
                             child: const Text('Lưu'),
                           ),
@@ -194,14 +218,11 @@ class _HomePageState extends State<HomePage> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      "Chào mừng về nhà,",
+                      "Chào mừng về nhà",
                       style:
-                          TextStyle(fontSize: 20, color: Colors.grey.shade800),
+                          TextStyle(fontSize: 30, color: Colors.grey.shade800),
                     ),
-                    Text(
-                      'DUC Y',
-                      style: GoogleFonts.bebasNeue(fontSize: 72),
-                    ),
+                    const SizedBox(height: 20)
                   ],
                 ),
               ),
@@ -214,16 +235,61 @@ class _HomePageState extends State<HomePage> {
                     Expanded(
                       child: Container(
                         height: 200,
-                        alignment: Alignment.center,
-                        margin: const EdgeInsets.only(left: 20),
-                        child: SmartDeviceBox(
-                          smartDeviceName: "Máy bơm cho bể cá",
-                          iconPath: "assets/fish.png",
-                          powerOn: fish,
-                          onChanged: (value) {},
+                        margin: const EdgeInsets.only(right: 20),
+                        width: 150,
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(12),
+                          color: Colors.white,
+                        ),
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Text(
+                              'NHIỆT ĐỘ',
+                              style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 20,
+                                color: fish ? Colors.white : Colors.black,
+                              ),
+                            ),
+                            const SizedBox(height: 12),
+                            SizedBox(
+                              height: 110,
+                              child: SleekCircularSlider(
+                                min: 0,
+                                max: 110,
+                                initialValue: temperatureSensorValue,
+                                appearance: CircularSliderAppearance(
+                                  spinnerMode: false,
+                                  customWidths: CustomSliderWidths(
+                                    shadowWidth: 10,
+                                  ),
+                                  customColors: CustomSliderColors(
+                                    trackColor: Colors.black,
+                                    progressBarColor: const Color.fromARGB(
+                                        255, 239, 177, 177),
+                                  ),
+                                ),
+                                onChange: null,
+                              ),
+                            ),
+                          ],
                         ),
                       ),
                     ),
+                    // Expanded(
+                    //   child: Container(
+                    //     height: 200,
+                    //     alignment: Alignment.center,
+                    //     margin: const EdgeInsets.only(left: 20),
+                    //     child: SmartDeviceBox(
+                    //       smartDeviceName: "Máy bơm cho bể cá",
+                    //       iconPath: "assets/fish.png",
+                    //       powerOn: fish,
+                    //       onChanged: (value) {},
+                    //     ),
+                    //   ),
+                    // ),
                     const SizedBox(width: 20),
                     Expanded(
                       child: Container(
@@ -292,7 +358,7 @@ class _HomePageState extends State<HomePage> {
 
               // grid
               GridView.builder(
-                itemCount: 5,
+                itemCount: 6,
                 shrinkWrap: true,
                 physics: const NeverScrollableScrollPhysics(),
                 padding: const EdgeInsets.symmetric(horizontal: 25),
